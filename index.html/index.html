@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <style>
+        body {
+            background-color: #121212;
+            color: #ffffff;
+            font-family: 'Roboto', sans-serif;
+        }
+        .container {
+            margin-top: 50px;
+            max-width: 600px;
+            background-color: #1e1e1e;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .input-group {
+            margin-bottom: 20px;
+        }
+        .request-button, .clear-button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-weight: 500;
+        }
+        .request-button:hover, .clear-button:hover {
+            background-color: #0056b3;
+            color: white;
+        }
+        .clear-button {
+            background-color: #6c757d;
+        }
+        .clear-button:hover {
+            background-color: #5a6268;
+        }
+        .download-button {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 10px 20px;
+            background-color: #28a745;
+            color: white;
+            border-radius: 5px;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .download-button:hover {
+            background-color: #218838;
+            color: white;
+        }
+        .download-button.disabled {
+            background-color: #6c757d;
+            pointer-events: none;
+        }
+        .logo {
+            display: block;
+            margin: 0 auto 20px;
+            max-width: 150px;
+        }
+        .progress {
+            margin-top: 20px;
+            height: 30px;
+        }
+        .progress-bar {
+            font-size: 16px;
+            font-weight: 500;
+        }
+        .logout-button {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            margin-top: 20px;
+            font-weight: 500;
+        }
+        .logout-button:hover {
+            background-color: #c82333;
+            color: white;
+        }
+    </style>
+    <title>Envato Web</title>
+</head>
+<body><br><br><br>
+    <div class="container text-center">
+        <img src="https://i.imgur.com/3qfs35f.png" alt="Logo" class="logo">
+
+        <!-- Exibir cotas
+        <p>Você tem <strong></strong> cotas restantes.</p>-->
+
+        <!-- Formulário de pesquisa -->
+        <form id="request-form">
+            <div class="input-group">
+                <input type="text" id="link" class="form-control" placeholder="Seu Link Aqui" required>
+            </div>
+            <div class="d-flex justify-content-between">
+                <button type="submit" class="request-button">PESQUISAR</button>
+                <button type="button" class="clear-button" onclick="clearForm()">LIMPAR</button>
+            </div>
+        </form>
+
+        <!-- Barra de Progresso Bootstrap -->
+        <div id="progress-container" class="progress d-none">
+            <div id="progress-bar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width: 0%">0%</div>
+        </div>
+
+        <div id="response"></div>
+
+        <!-- Botão de logout
+        <form action="/logout" method="get">
+            <button type="submit" class="logout-button">Logout</button>
+        </form>-->
+    </div>
+
+    <script>
+        document.getElementById('request-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const link = document.getElementById('link').value;
+
+            // Exibir a barra de progresso
+            const progressBar = document.getElementById('progress-bar');
+            const progressContainer = document.getElementById('progress-container');
+            progressContainer.classList.remove('d-none');
+
+            // Resetar a barra de progresso
+            progressBar.style.width = '0%';
+            progressBar.setAttribute('aria-valuenow', '0');
+            progressBar.innerText = '0%';
+
+            // Simular progresso em tempo real
+            let progress = 0;
+            const progressInterval = setInterval(() => {
+                progress += 10;
+                progressBar.style.width = progress + '%';
+                progressBar.setAttribute('aria-valuenow', progress);
+                progressBar.innerText = progress + '%';
+
+                if (progress >= 100) {
+                    clearInterval(progressInterval);
+                }
+            }, 500); // Atualizar a barra de progresso a cada 500ms
+
+            fetch('/request_link', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ link: link })
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Ocultar a barra de progresso após o processamento
+                progressContainer.classList.add('d-none');
+
+                const responseDiv = document.getElementById('response');
+                if (data.status === 'success') {
+                    const expiryTime = 20; // 20 seconds
+                    const downloadButton = document.createElement('a');
+                    downloadButton.href = data.download_link;
+                    downloadButton.className = 'download-button';
+                    downloadButton.target = '_blank';
+                    downloadButton.innerText = `Download (00:20)`;
+                    responseDiv.innerHTML = '';
+                    responseDiv.appendChild(downloadButton);
+
+                    let timeLeft = expiryTime;
+
+                    const timer = setInterval(() => {
+                        if (timeLeft <= 0) {
+                            clearInterval(timer);
+                            downloadButton.innerText = 'Download (Expirado...)';
+                            downloadButton.classList.add('disabled');
+                            downloadButton.removeAttribute('href');
+                        } else {
+                            timeLeft--;
+                            const minutes = Math.floor(timeLeft / 60).toString().padStart(2, '0');
+                            const seconds = (timeLeft % 60).toString().padStart(2, '0');
+                            downloadButton.innerText = `Download (${minutes}:${seconds})`;
+                        }
+                    }, 1000);
+                } else {
+                    responseDiv.innerText = `Error: ${data.message}`;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                progressContainer.classList.add('d-none');
+                document.getElementById('response').innerText = 'An error occurred. Please try again.';
+            });
+        });
+
+        function clearForm() {
+            document.getElementById('link').value = '';
+            document.getElementById('response').innerHTML = '';
+        }
+    </script>
+</body>
+</html>
